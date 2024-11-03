@@ -1,0 +1,1 @@
+// Aquí puedes definir funciones de utilidad que sean útiles en varias partes de tu aplicación
