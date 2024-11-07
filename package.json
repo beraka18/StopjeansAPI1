@@ -3,5 +3,9 @@
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "mysql2": "^1.0.0-rc.7"
+  },
+  "scripts": {
+    "dev": "node --watch app.js",
+    "start": "node app.js"  
   }
 }

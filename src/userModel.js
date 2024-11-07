@@ -1,7 +1,22 @@
 const connection = require('../config/db');
 
-const userModel = {
-  // Aquí puedes agregar métodos como obtener usuarios, agregar usuarios, etc.
-};
+// Obtener todos los usuarios
+async function getAllUsers() {
+  try {
+    const [rows] = await connection.execute('SELECT * FROM Usuario');
+    return rows;
+  } catch (error) {
+    throw error;
+  }
+}
 
-module.exports = userModel;
+// Eliminar un usuario
+async function deleteUser(usuario) {
+  try {
+    await connection.execute('DELETE FROM Usuario WHERE Nombre = ?', [usuario]);
+  } catch (error) {
+    throw error;
+  }
+}
+
+module.exports = { getAllUsers, deleteUser };

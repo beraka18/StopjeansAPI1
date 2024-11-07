@@ -1,66 +1,79 @@
 const express = require('express');
-const mysql = require('mysql2/promise'); // Importamos mysql2 con promesas
+const mysql = require('mysql2/promise');
+const cors = require('cors');
 const app = express();
-const port = 3000;
+const port = 5000;
 
-// Middleware para parsear el cuerpo de las solicitudes en formato JSON
+// Middleware para manejar JSON y habilitar CORS
 app.use(express.json());
+app.use(cors());
 
-// Crear la conexión a la base de datos
+// Crear conexión a la base de datos
 const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
   database: 'crud_adaptacion_a_pagina_web_stop',
 });
 
+// Ruta de prueba
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.send('Servidor funcionando');
 });
 
-// Cambié el método de GET a POST para Login, es más adecuado para manejar credenciales
-app.post('/Login', async (req, res) => { // req = request, petición; res = response, respuesta
-  const { nombre, correo, contraseña, direccion } = req.body; // Extraemos datos del cuerpo de la petición
-
-  // Depuración: muestra los datos recibidos en el cuerpo de la solicitud
-  console.log('Datos recibidos para Login:', { nombre, correo, contraseña, direccion });
+// Endpoint para login de usuario
+app.post('/login', async (req, res) => {
+  const { usuario, contraseña } = req.body;
 
   try {
-    // Consulta simple SELECT
-    const query = `
-      SELECT Nombre, Correo_electronico, Direccion 
-      FROM usuario 
-      WHERE Nombre = ? AND Correo_electronico = ? AND Contraseña = ? AND Direccion = ?`;
-    
-    console.log('Ejecutando consulta:', query); // Depuración: Antes de la consulta
-
-    const [results] = await connection.query(query, [
-      nombre.trim(), correo.trim(), contraseña.trim(), direccion.trim()
-    ]);
-
-    // Depuración: después de la consulta, solo muestra datos relevantes de cada fila
-    console.log('Resultados de la consulta:', results.map(row => ({
-      Nombre: row.Nombre,
-      Correo_electronico: row.Correo_electronico,
-      Direccion: row.Direccion
-    })));
-
-    if (results.length > 0) {
-      res.status(200).send(`Inicio de sesión exitoso para: ${results[0].Nombre}`);
+    const [rows] = await connection.execute('SELECT * FROM Usuario WHERE Nombre = ? AND Contraseña = ?', [usuario, contraseña]);
+    if (rows.length > 0) {
+      res.json({ mensaje: 'Bienvenido!' });
     } else {
-      res.status(401).send('Credenciales incorrectas'); // Mensaje de error si no hay resultados
+      res.status(401).json({ mensaje: 'Credenciales incorrectas' });
     }
-  } catch (err) {
-    console.error('Error en la consulta:', err);
-    res.status(500).send('Error en el servidor'); // Mensaje de error del servidor
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al realizar el login' });
   }
 });
 
-// Endpoint de Validación
-app.get('/Validar', (req, res) => {
-  res.send('Sesión validada!');
+// Endpoint para registrar un nuevo usuario
+app.post('/register', async (req, res) => {
+  const { usuario, correo, contraseña, direccion } = req.body;
+
+  try {
+    await connection.execute(
+      'INSERT INTO Usuario (Nombre, Correo_electronico, Contraseña, Direccion) VALUES (?, ?, ?, ?)',
+      [usuario, correo, contraseña, direccion]
+    );
+    res.json({ mensaje: 'Usuario registrado con éxito' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al registrar el usuario' });
+  }
 });
 
-// Iniciar el servidor
+// Endpoint para eliminar un usuario
+app.delete('/delete', async (req, res) => {
+  const { usuario } = req.body;
+
+  try {
+    await connection.execute('DELETE FROM Usuario WHERE Nombre = ?', [usuario]);
+    res.json({ mensaje: 'Usuario eliminado con éxito' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al eliminar el usuario' });
+  }
+});
+
+// Endpoint para obtener la lista de usuarios
+app.get('/usuarios', async (req, res) => {
+  try {
+    const [rows] = await connection.execute('SELECT * FROM Usuario');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener los usuarios' });
+  }
+});
+
+// Iniciar servidor
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`Servidor corriendo en http://localhost:${port}`);
 });

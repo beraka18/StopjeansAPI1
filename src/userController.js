@@ -1,27 +1,34 @@
-const connection = require('../config/db');
+const connection = require('../config/db'); // Importamos la conexión de la base de datos
 
-const userController = {
-  login: async (req, res) => {
-    const { nombre, correo, contraseña, direccion } = req.body;
-
-    try {
-      const [results] = await connection.query(
-        "SELECT Nombre FROM usuario WHERE Nombre = ? AND Correo_electronico = ? AND Contraseña = ? AND Direccion = ?",
-        [nombre.trim(), correo.trim(), contraseña.trim(), direccion.trim()]
-      );
-
-      if (results.length > 0) {
-        res.status(200).send(`Inicio de sesión exitoso para: ${results[0].Nombre}`);
-      } else {
-        res.status(401).send('Credenciales incorrectas');
-      }
-    } catch (err) {
-      console.error('Error en la consulta:', err);
-      res.status(500).send('Error en el servidor');
+// Función para el login de usuario
+async function login(req, res) {
+  const { usuario, contraseña } = req.body;
+  try {
+    const [rows] = await connection.execute(
+      'SELECT * FROM Usuario WHERE Nombre = ? AND Contraseña = ?', [usuario, contraseña]
+    );
+    if (rows.length > 0) {
+      res.json({ mensaje: 'Bienvenido!' });
+    } else {
+      res.status(401).json({ mensaje: 'Credenciales incorrectas' });
     }
-  },
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al realizar el login' });
+  }
+}
 
-  // Aquí puedes agregar más métodos para el manejo de usuarios, como el registro
-};
+// Función para registrar un nuevo usuario
+async function register(req, res) {
+  const { usuario, correo, contraseña, direccion } = req.body;
+  try {
+    await connection.execute(
+      'INSERT INTO Usuario (Nombre, Correo_electronico, Contraseña, Direccion) VALUES (?, ?, ?, ?)',
+      [usuario, correo, contraseña, direccion]
+    );
+    res.json({ mensaje: 'Usuario registrado con éxito' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al registrar el usuario' });
+  }
+}
 
-module.exports = userController;
+module.exports = { login, register };

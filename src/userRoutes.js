@@ -1,12 +1,8 @@
 const express = require('express');
-const userController = require('../controllers/userController');
-const authMiddleware = require('../middleware/authMiddleware');
-
+const { login, register } = require('../controllers/authController');
 const router = express.Router();
 
-// Ruta para iniciar sesión
-router.post('/login', userController.login);
-
-// Puedes agregar más rutas aquí, como registro, obtener usuarios, etc.
+router.post('/login', login);
+router.post('/register', register);
 
 module.exports = router;
