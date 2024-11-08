@@ -1,40 +1,41 @@
+// Requerir las dependencias
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const session = require('express-session');
 const dotenv = require('dotenv');
 
-dotenv.config(); // Cargar las variables de entorno desde .env
+// Cargar las variables de entorno desde el archivo .env
+dotenv.config(); 
 
+// Inicializar la aplicación Express
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 // Middleware para manejar JSON y habilitar CORS
 app.use(express.json());
 
 // Configuración de CORS con credenciales
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Cambia a tu URL permitida en producción
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',  // Cambia a la URL de tu frontend
   credentials: true
 }));
 
 // Configuración de sesiones
 app.use(session({
-  secret: process.env.SECRETSESSION,
-  resave: false,
-  saveUninitialized: false,
-  proxy: process.env.NODE_ENV === 'production',
+  secret: process.env.SECRETSESSION,  // Secreto para encriptar la sesión
+  resave: false,                      // No volver a guardar sesiones no modificadas
+  saveUninitialized: false,           // No guardar sesiones no inicializadas
+  proxy: process.env.NODE_ENV === 'production',  // Habilitar proxy para producción
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // solo enviar cookies en HTTPS en producción
-    sameSite: 'lax' // Política para proteger contra CSRF (ajusta según lo que necesites)
+    secure: process.env.NODE_ENV === 'production',  // Asegura las cookies en producción
+    sameSite: 'lax'  // Política para proteger contra CSRF
   }
 }));
 
-// Crear conexión a la base de datos
+// Crear conexión a la base de datos usando la URL de conexión completa
 const connection = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  database: 'crud_adaptacion_a_pagina_web_stop',
+  uri: process.env.DATABASE_URL,  // Usar la URI proporcionada por Railway
 });
 
 // Ruta de prueba
@@ -45,7 +46,6 @@ app.get('/', (req, res) => {
 // Endpoint para login de usuario
 app.post('/login', async (req, res) => {
   const { usuario, contraseña } = req.body;
-
   try {
     const [rows] = await connection.execute('SELECT * FROM Usuario WHERE Nombre = ? AND Contraseña = ?', [usuario, contraseña]);
     if (rows.length > 0) {
@@ -62,7 +62,6 @@ app.post('/login', async (req, res) => {
 // Endpoint para registrar un nuevo usuario
 app.post('/register', async (req, res) => {
   const { usuario, correo, contraseña, direccion } = req.body;
-
   try {
     await connection.execute(
       'INSERT INTO Usuario (Nombre, Correo_electronico, Contraseña, Direccion) VALUES (?, ?, ?, ?)',
@@ -77,7 +76,6 @@ app.post('/register', async (req, res) => {
 // Endpoint para eliminar un usuario
 app.delete('/delete', async (req, res) => {
   const { usuario } = req.body;
-
   try {
     await connection.execute('DELETE FROM Usuario WHERE Nombre = ?', [usuario]);
     res.json({ mensaje: 'Usuario eliminado con éxito' });
@@ -93,6 +91,15 @@ app.get('/usuarios', async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener los usuarios' });
+  }
+});
+
+// Endpoint para verificar si un usuario está autenticado
+app.get('/perfil', (req, res) => {
+  if (req.session.user) {
+    res.json({ mensaje: `Bienvenido ${req.session.user}` });
+  } else {
+    res.status(401).json({ mensaje: 'No estás autenticado' });
   }
 });
 
