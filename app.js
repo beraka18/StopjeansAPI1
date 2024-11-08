@@ -1,12 +1,34 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const session = require('express-session');
+const dotenv = require('dotenv');
+
+dotenv.config(); // Cargar las variables de entorno desde .env
+
 const app = express();
 const port = 5000;
 
 // Middleware para manejar JSON y habilitar CORS
 app.use(express.json());
-app.use(cors());
+
+// Configuración de CORS con credenciales
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Cambia a tu URL permitida en producción
+  credentials: true
+}));
+
+// Configuración de sesiones
+app.use(session({
+  secret: process.env.SECRETSESSION,
+  resave: false,
+  saveUninitialized: false,
+  proxy: process.env.NODE_ENV === 'production',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // solo enviar cookies en HTTPS en producción
+    sameSite: 'lax' // Política para proteger contra CSRF (ajusta según lo que necesites)
+  }
+}));
 
 // Crear conexión a la base de datos
 const connection = mysql.createPool({
@@ -27,6 +49,7 @@ app.post('/login', async (req, res) => {
   try {
     const [rows] = await connection.execute('SELECT * FROM Usuario WHERE Nombre = ? AND Contraseña = ?', [usuario, contraseña]);
     if (rows.length > 0) {
+      req.session.user = usuario; // Guardar el usuario en la sesión
       res.json({ mensaje: 'Bienvenido!' });
     } else {
       res.status(401).json({ mensaje: 'Credenciales incorrectas' });
